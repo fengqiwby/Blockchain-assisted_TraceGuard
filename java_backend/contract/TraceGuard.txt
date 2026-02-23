@@ -1,0 +1,152 @@
+pragma solidity ^0.4.25;
+pragma experimental ABIEncoderV2; 
+
+contract TraceGuard {
+    
+    address public admin; // 管理员地址
+
+    struct Evidence {
+        uint256 id;
+        string evidenceHash;
+        string ipHash;
+        string modelVersion;
+        uint256 timestamp;
+        uint256 blockHeight;
+        uint256 confidence;
+        string status; // "Active" (有效), "Invalid" (撤销/无效)
+    }
+
+    struct Model {
+        string version;
+        string dataSummary;
+        uint256 updateTime;
+    }
+
+    Evidence[] public allEvidences;
+    mapping(string => Model) private models; 
+    mapping(string => uint256[]) private ipToEvidenceIds;
+
+    // 事件：增加状态变更通知
+    event EvidenceAdded(uint256 id, string ipHash, uint256 time);
+    event EvidenceStatusChanged(uint256 id, string newStatus);
+
+    // 权限控制：只允许管理员执行
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only admin can perform this action");
+        _;
+    }
+
+    constructor() public {
+        admin = msg.sender; // 谁部署合约，谁就是管理员
+    }
+
+    // --- 原有功能：模型登记 ---
+    function registerModel(string version, string dataSummary) public {
+        models[version] = Model(version, dataSummary, now);
+    }
+
+    function getModel(string version) public view returns (Model) {
+        return models[version];
+    }
+
+    // --- 原有功能：证据上链 (增加了默认状态) ---
+    function uploadEvidence(
+        string _evidenceHash, 
+        string _ipHash, 
+        string _modelVersion, 
+        uint256 _confidence
+    ) public {
+        uint256 newId = allEvidences.length;
+        
+        allEvidences.push(Evidence({
+            id: newId,
+            evidenceHash: _evidenceHash,
+            ipHash: _ipHash,
+            modelVersion: _modelVersion,
+            timestamp: now,
+            blockHeight: block.number,
+            confidence: _confidence,
+            status: "Active" // 初始状态默认为有效
+        }));
+        
+        ipToEvidenceIds[_ipHash].push(newId);
+        emit EvidenceAdded(newId, _ipHash, now);
+    }
+
+    // --- 【新增功能】：治理接口 (逻辑删除/改) ---
+
+    // 逻辑删除：将存证标记为 Invalid
+    function revokeEvidence(uint256 _id) public onlyAdmin {
+        require(_id < allEvidences.length, "Evidence ID does not exist");
+        allEvidences[_id].status = "Invalid";
+        emit EvidenceStatusChanged(_id, "Invalid");
+    }
+
+    // 修正置信度：当人工复核后发现模型预测不准时使用
+    function updateConfidence(uint256 _id, uint256 _newConfidence) public onlyAdmin {
+        require(_id < allEvidences.length, "Evidence ID does not exist");
+        allEvidences[_id].confidence = _newConfidence;
+    }
+
+    // --- 查询功能：保持不变 ---
+    function getHistoryByIp(string _ipHash) public view returns (Evidence[]) {
+        uint256[] memory ids = ipToEvidenceIds[_ipHash];
+        Evidence[] memory history = new Evidence[](ids.length);
+        
+        for (uint i = 0; i < ids.length; i++) {
+            history[i] = allEvidences[ids[i]];
+        }
+        return history;
+    }
+    
+    function getHistoryAdvanced(
+        uint256 _startTime,
+        uint256 _endTime,
+        uint256 _minConfidence,
+        string _modelVersion
+    ) public view returns (Evidence[]) {
+        // 1. 先统计符合条件的记录数量
+        uint256 count = 0;
+        for (uint256 i = 0; i < allEvidences.length; i++) {
+            Evidence memory ev = allEvidences[i];
+            if (checkMatch(ev, _startTime, _endTime, _minConfidence, _modelVersion)) {
+                count++;
+            }
+        }
+
+        // 2. 创建返回数组
+        Evidence[] memory results = new Evidence[](count);
+        uint256 index = 0;
+        for (uint256 j = 0; j < allEvidences.length; j++) {
+            Evidence memory ev2 = allEvidences[j];
+            if (checkMatch(ev2, _startTime, _endTime, _minConfidence, _modelVersion)) {
+                results[index] = ev2;
+                index++;
+            }
+        }
+        return results;
+    }
+
+    // 辅助逻辑判断
+    function checkMatch(
+        Evidence _ev,
+        uint256 _start,
+        uint256 _end,
+        uint256 _minConf,
+        string _version
+    ) private pure returns (bool) {
+        if (_start != 0 && _ev.timestamp < _start) return false;
+        if (_end != 0 && _ev.timestamp > _end) return false;
+        if (_minConf != 0 && _ev.confidence < _minConf) return false;
+        // 字符串比较
+        if (bytes(_version).length > 0 && 
+            keccak256(abi.encodePacked(_ev.modelVersion)) != keccak256(abi.encodePacked(_version))) {
+            return false;
+        }
+        return true;
+    }
+
+    function getTotalCount() public view returns (uint256) {
+        return allEvidences.length;
+    }
+}

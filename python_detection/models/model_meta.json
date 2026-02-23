@@ -1,0 +1,8 @@
+{
+    "model_version": "CNN-V2.0",
+    "algorithm": "Enhanced-1D-CNN",
+    "train_time": "2026-02-11 18:45:19",
+    "data_hash_summary": "d953bf6e34887b6b32907acd01e733e5b37c8fd79d2ff21757200e040d026e85",
+    "accuracy": 0.9465,
+    "file_path": "models/ddos_cnn_v1.h5"
+}

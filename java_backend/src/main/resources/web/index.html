@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>TraceGuard 安全审计系统</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+        h1 { text-align: center; color: #1a1a1a; margin-bottom: 30px; }
+        
+        .card { background: white; border-radius: 8px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .card h2 { border-left: 5px solid #1890ff; padding-left: 12px; margin-top: 0; font-size: 18px; }
+        
+        /* 表单样式 */
+        .form-row { display: flex; gap: 20px; margin-bottom: 15px; flex-wrap: wrap; }
+        .input-group { display: flex; flex-direction: column; }
+        .input-group label { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #666; }
+        input { padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; width: 200px; }
+        
+        /* 按钮样式 */
+        button { padding: 8px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .btn-blue { background: #1890ff; color: white; }
+        .btn-blue:hover { background: #40a9ff; }
+        .btn-green { background: #52c41a; color: white; }
+        .btn-green:hover { background: #73d13d; }
+        .btn-red { background: #ff4d4f; color: white; padding: 4px 10px; font-size: 12px; }
+        .btn-outline { background: white; border: 1px solid #d9d9d9; color: #666; }
+        .btn-outline:hover { border-color: #1890ff; color: #1890ff; }
+
+        /* 表格样式 */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: #fafafa; padding: 12px; text-align: left; font-weight: 600; border-bottom: 1px solid #f0f0f0; }
+        td { padding: 12px; border-bottom: 1px solid #f0f0f0; }
+        tr:hover { background: #fbfbfb; }
+
+        /* 状态标签 */
+        .tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+        .tag-active { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+        .tag-invalid { background: #fff1f0; color: #ff4d4f; border: 1px solid #ffa39e; }
+        
+        #searchResultArea { display: none; border-top: 2px dashed #eee; margin-top: 20px; padding-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>🛡️ TraceGuard 分布式安全审计管理平台</h1>
+
+    <!-- 1. 证据上报 -->
+    <div class="card">
+        <h2>① 模拟证据上报 (增)</h2>
+        <div class="form-row">
+            <div class="input-group">
+                <label>攻击者 IP</label>
+                <input type="text" id="addIp" placeholder="例如: 10.0.0.1">
+            </div>
+            <div class="input-group">
+                <label>置信度 (0-100)</label>
+                <input type="number" id="addConf" value="95">
+            </div>
+            <div class="input-group" style="justify-content: flex-end;">
+                <button class="btn-blue" onclick="handleAdd()">🚀 立即上链</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 多维度智能查询 -->
+    <div class="card">
+        <h2>② 多维度智能溯源 (查)</h2>
+        <div class="form-row">
+            <div class="input-group">
+                <label>精确 IP (可选)</label>
+                <input type="text" id="qIp" placeholder="输入 IP 以精确查找">
+            </div>
+            <div class="input-group">
+                <label>最低置信度</label>
+                <input type="number" id="qConf" value="0" placeholder="0">
+            </div>
+            <div class="input-group">
+                <label>模型版本</label>
+                <input type="text" id="qVer" placeholder="例如: CNN-V1.0">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="input-group">
+                <label>开始日期</label>
+                <input type="date" id="qStart">
+            </div>
+            <div class="input-group">
+                <label>结束日期</label>
+                <input type="date" id="qEnd">
+            </div>
+            <div class="input-group" style="justify-content: flex-end;">
+                <button class="btn-green" onclick="handleAdvancedSearch()">🔍 执行组合检索</button>
+            </div>
+        </div>
+
+        <!-- 查询结果展示区 -->
+        <div id="searchResultArea">
+            <h3 style="color:#52c41a">✅ 检索结果</h3>
+            <table id="resultTable">
+                <thead><tr><th>ID</th><th>IP(Hash)</th><th>模型</th><th>置信度</th><th>时间</th><th>状态</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 3. 全量存证列表 -->
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>③ 存证全量台账 (改/删/管)</h2>
+            <button class="btn-outline" onclick="refreshList()">🔄 刷新列表</button>
+        </div>
+        <table id="mainTable">
+            <thead>
+                <tr><th>ID</th><th>模型版本</th><th>置信度</th><th>状态</th><th>上链时间</th><th>治理操作</th></tr>
+            </thead>
+            <tbody id="mainTbody">
+                <tr><td colspan="6" style="text-align:center;">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+<script>
+    // --- 核心逻辑 ---
+
+    // 1. 全量刷新
+    async function refreshList() {
+        try {
+            const res = await fetch('/api/list');
+            const data = await res.json();
+            
+            // 获取表格身体对象
+            const tbody = document.querySelector('#mainTable tbody');
+            
+            // 如果数据为空
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">暂无数据</td></tr>';
+                return;
+            }
+
+            // 渲染数据
+            tbody.innerHTML = data.reverse().map(item => {
+                // 时间戳转换 (处理 JSON 里的字符串时间戳)
+                let timeDisplay = item.timestamp;
+                try {
+                    const date = new Date(parseInt(item.timestamp));
+                    timeDisplay = date.toLocaleString();
+                } catch(e) {}
+
+                // 状态样式判断
+                const statusClass = item.status === 'Active' ? 'status-active' : 'status-invalid';
+                const statusText = item.status === 'Active' ? '🟢 有效' : '🔴 已撤销';
+
+                // 生成操作按钮
+                const actions = item.status === 'Active' 
+                    ? `<button onclick="handleRevoke(${item.id})" class="btn-red" style="font-size:12px;padding:4px 8px;">撤销</button>
+                       <button onclick="handleUpdate(${item.id})" class="btn-outline" style="font-size:12px;padding:4px 8px;">修正</button>`
+                    : '<span style="color:#999;">已归档</span>';
+
+                return `
+                <tr>
+                    <td>#${item.id}</td>
+                    <td>${item.modelVersion}</td>
+                    <td><b>${item.confidence}%</b></td>
+                    <td><span class="${statusClass}">${statusText}</span></td>
+                    <td style="font-size:12px;color:#666;">${timeDisplay}</td>
+                    <td>${actions}</td>
+                </tr>
+                `;
+            }).join('');
+            
+        } catch (e) {
+            console.error("渲染失败:", e);
+            document.querySelector('#mainTable tbody').innerHTML = `<tr><td colspan="5" style="color:red;">数据加载异常</td></tr>`;
+        }
+    }
+
+
+    // 2. 多维度查询
+    async function handleAdvancedSearch() {
+        const ip = document.getElementById('qIp').value;
+        const minConf = document.getElementById('qConf').value;
+        const version = document.getElementById('qVer').value;
+        const start = document.getElementById('qStart').value;
+        const end = document.getElementById('qEnd').value;
+
+        // 构建查询 URL
+        let url = `/api/query?minConf=${minConf}&version=${version}&start=${start}&end=${end}`;
+        if(ip) url += `&ip=${ip}`; // 如果有 IP，优先按 IP 查
+
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            document.getElementById('searchResultArea').style.display = 'block';
+            if(data.length === 0) {
+                document.querySelector('#resultTable tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:red;">未找到匹配记录</td></tr>';
+            } else {
+                renderTable('resultTable', data, false); // false 表示不显示操作按钮
+            }
+        } catch (e) { alert("查询失败: " + e.message); }
+    }
+
+    // 3. 上链
+    async function handleAdd() {
+        const ip = document.getElementById('addIp').value;
+        const conf = document.getElementById('addConf').value;
+        if(!ip) return alert("请输入IP");
+        
+        await fetch(`/api/add?ip=${ip}&confidence=${conf}`);
+        alert("上链请求已发送，请等待区块确认...");
+        setTimeout(refreshList, 2000);
+    }
+
+    // 4. 撤销
+    async function handleRevoke(id) {
+        if(!confirm("确定要撤销此记录吗？")) return;
+        await fetch(`/api/revoke?id=${id}`);
+        setTimeout(refreshList, 1500);
+    }
+
+    // 5. 修正
+    async function handleUpdate(id) {
+        const val = prompt("输入新置信度:");
+        if(val) {
+            await fetch(`/api/update?id=${id}&confidence=${val}`);
+            setTimeout(refreshList, 1500);
+        }
+    }
+
+    // 通用渲染表格函数
+    function renderTable(tableId, data, showActions) {
+        const tbody = document.querySelector(`#${tableId} tbody` || `#${tableId}`);
+        if(!tbody) return;
+        
+        tbody.innerHTML = data.map(item => `
+            <tr>
+                <td>#${item.id}</td>
+                ${!showActions ? `<td title="${item.ipHash}">${item.ipHash.substring(0,8)}...</td>` : ''}
+                <td>${item.modelVersion || 'Unknown'}</td>
+                <td><b>${item.confidence}%</b></td>
+                <td>${new Date(parseInt(item.timestamp)).toLocaleString()}</td>
+                <td><span class="${item.status === 'Active' ? 'tag-active' : 'tag-invalid'}">${item.status}</span></td>
+                ${showActions ? `
+                <td>
+                    ${item.status === 'Active' ? 
+                    `<button onclick="handleRevoke(${item.id})" class="btn-red">撤销</button> 
+                     <button onclick="handleUpdate(${item.id})" class="btn-outline" style="font-size:12px;padding:4px 8px;">修正</button>` 
+                    : '-'}
+                </td>` : ''}
+            </tr>
+        `).join('');
+    }
+
+    // 初始化
+    window.onload = refreshList;
+</script>
+</body>
+</html>

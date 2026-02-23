@@ -1,0 +1,9 @@
+[cryptoMaterial]
+certPath = "conf"
+
+[network]
+peers=["127.0.0.1:20200"]
+
+[account]
+keyStoreDir = "account"
+type = "pem"
