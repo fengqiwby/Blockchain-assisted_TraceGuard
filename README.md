@@ -120,7 +120,7 @@ To enable the real-time web monitoring and governance interface:
 
 > **Note:** The web interface allows for real-time visualization of attack logs synced directly from the blockchain state.
 
-## 📊 Dashboard Preview
+## 📊 System Visualization
 
 ### 1. Real-time Monitoring Dashboard
 
@@ -132,6 +132,64 @@ You can view the real-time attack analysis by opening `dashboard.html` generated
 The management terminal allows administrators to query blockchain evidence and perform data governance.
 
 ![Terminal Preview](images/terminal.png)
+
+## 🚀 Performance Benchmarking & Stress Test
+
+The following stress tests were conducted on a single virtual machine environment hosting 4 FISCO BCOS nodes. The benchmarks cover the full CRUD (Create, Read, Update, Delete) cycle of the blockchain evidence system.
+
+### 1. Upload Operations (Create/Write) - `tps [amount]`
+*Testing the throughput of committing new DDoS evidence to the ledger.*
+
+| Benchmark (Target) | Duration (s) | Actual TPS | Avg Latency (ms/op) |
+| :--- | :--- | :--- | :--- |
+| **150 tx** | 0.92 | 162.51 | 872.0062 |
+| **500 tx** | 2.19 | 228.52 | 2062.8401 |
+| **1000 tx** | 4.39 | 227.63 | 4226.1597 |
+| **1500 tx** | 6.47 | 232.02 | 4806.8494 |
+| **2000 tx** | 8.72 | 229.38 | 6211.0214 |
+| **3000 tx** | 16.54 | 181.33 | 10640.4917 |
+
+---
+
+### 2. Management & Query Performance - `benchmark [mode] [amount]`
+*Comparing the efficiency of Governance (Modify/Delete) vs. Traceability (Query).*
+
+#### 🛠️ Modify (Update Confidence)
+| Benchmark | Actual TPS | Avg Latency (ms/op) |
+| :--- | :--- | :--- |
+| **150 ops** | 370.37 | 392.4183 |
+| **500 ops** | 493.58 | 995.4025 |
+| **1000 ops** | 704.72 | 1396.3399 |
+| **1500 ops** | 503.52 | 1917.8866 |
+| **2000 ops** | 676.59 | 2046.6464 |
+| **3000 ops** | 584.68 | 3840.3761 |
+
+#### 🗑️ Delete (Revoke Evidence)
+| Benchmark | Actual TPS | Avg Latency (ms/op) |
+| :--- | :--- | :--- |
+| **150 ops** | 204.64 | 724.3003 |
+| **500 ops** | 625.78 | 777.9463 |
+| **1000 ops** | 433.65 | 1636.3188 |
+| **1500 ops** | 583.43 | 1967.1958 |
+| **2000 ops** | 669.12 | 2031.6346 |
+| **3000 ops** | 664.75 | 3089.6220 |
+
+#### 🔍 Query (IP Traceability)
+| Benchmark | Actual TPS | Avg Latency (ms/op) |
+| :--- | :--- | :--- |
+| **150 ops** | 914.63 | 75.8081 |
+| **500 ops** | 1557.63 | 117.6019 |
+| **1000 ops** | 1328.02 | 327.8025 |
+| **1500 ops** | 1500.00 | 425.9297 |
+| **2000 ops** | 1123.60 | 826.7680 |
+| **3000 ops** | 1291.99 | 1220.1240 |
+
+---
+
+### 📈 Performance Analysis
+- **High Read Scalability**: The **Query** operation achieves a peak of **1557.63 TPS**, significantly outperforming write operations as it utilizes the local state machine without requiring global consensus.
+- **Stable Governance**: **Modify** and **Delete** operations maintain a steady throughput of **500-700 TPS**, ensuring that administrative governance actions are processed efficiently even under high load.
+- **Saturation Point**: For **Upload** operations, the system reaches its optimal saturation at **1500 concurrent transactions (~232 TPS)**. Beyond this point, increased load results in higher queuing latency due to the single-node physical I/O limits of the simulation environment.
 
 ## 🛠️ Technology Stack
 
