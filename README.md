@@ -6,7 +6,7 @@
 
 ## 📖 Introduction 
 
-**TraceGuard** solves the problem of trust and traceability in traditional DDoS defense . 
+**TraceGuard** solves the problem of trust and traceability in traditional DDoS defense. 
 By combining a **1D-CNN deep learning model** for traffic detection with **Blockchain technology** for immutable storage, it ensures that every attack evidence is verifiable, traceable, and tamper-proof.
 
 It includes a full-featured management terminal supporting **High-concurrency Uploads**, **Multi-dimensional Queries**, and **Data Governance**.
