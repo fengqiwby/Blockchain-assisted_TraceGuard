@@ -1,6 +1,6 @@
 # 🛡️ Blockchain-assisted TraceGuard
 
-> An intelligent, decentralized DDoS evidence auditing and governance system based on **Deep Learning (CNN)** and **Consortium Blockchain (FISCO BCOS)** .
+> An intelligent, decentralized DDoS evidence auditing and governance system based on **Deep Learning (CNN)** and **Consortium Blockchain (FISCO BCOS)**.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Platform](https://img.shields.io/badge/platform-FISCO%20BCOS-green) ![Language](https://img.shields.io/badge/language-Java%20%7C%20Python-orange)
 
